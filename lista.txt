@@ -1,0 +1,11 @@
+.gitignore
+.streamlit
+.venv
+app.py
+assets
+core
+fer.txt
+lista.txt
+README.md
+reports
+requirements.txt

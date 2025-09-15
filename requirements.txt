@@ -1,0 +1,7 @@
+streamlit==1.36.0
+pandas
+numpy
+reportlab
+pydantic>=2.11,<3
+openpyxl        # para leer .xlsx en pestaña "Combinaciones"
+

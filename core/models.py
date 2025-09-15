@@ -28,21 +28,35 @@ class Geometry(BaseModel):
     a_mm: float
     b_mm: float
     tp_mm: float
-    hc_mm: float = 0.0
-    bc_mm: float = 0.0
     g1_mm: float = 0.0
     v1_mm: float = 0.0
 
-class AnchorLine(BaseModel):
-    index: int
-    n_bolts: int
-    edge_dist_mm: float
-    bolt_d_mm: float
-    bolt_d_in: Optional[float] = None
+class ColumnFootprint(BaseModel):
+    b_col_mm: float = 300.0
+    h_col_mm: float = 300.0
 
-class Anchors(BaseModel):
-    lines: List[AnchorLine]
-    resist_shear: bool = False
+class Pedestal(BaseModel):
+    use: bool = False
+    Bp_mm: float = 0.0  # width (x)
+    Lp_mm: float = 0.0  # length (y)
+    a2a1_override: Optional[float] = None
+
+class AnchorageConfig(BaseModel):
+    n_rows: int = 2
+    n_cols: int = 2
+    s_x_mm: float = 200.0
+    s_y_mm: float = 200.0
+    hef_mm: float = 300.0
+    conc_thk_mm: float = 500.0
+    cracked: bool = True
+    anchor_type: str = "headed"  # or 'hooked'
+    c_x_left_mm: float = 100.0
+    c_x_right_mm: float = 100.0
+    c_y_top_mm: float = 100.0
+    c_y_bottom_mm: float = 100.0
+
+class AnchorsLayout(BaseModel):
+    lines: List  # keep for legacy; not used for concrete modes yet
 
 class Loads(BaseModel):
     N_kN: float
@@ -62,7 +76,9 @@ class InputData(BaseModel):
     units: str = "SI"
     materials: Materials
     geometry: Geometry
-    anchors: Anchors
     loads: Loads
     method: Method
+    column: ColumnFootprint
+    pedestal: Pedestal
+    anchorage: AnchorageConfig
     options: Options = Options()

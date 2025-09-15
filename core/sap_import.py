@@ -25,11 +25,9 @@ def read_sap_joint_reactions(file) -> pd.DataFrame:
     )
     df = df.loc[~mask_units].copy()
 
-    # Keep only needed columns
     keep = ['Joint','OutputCase','F1','F2','F3','M1','M2','M3']
     df = df[[c for c in keep if c in df.columns]].copy()
 
-    # Types
     df['Joint'] = pd.to_numeric(df['Joint'], errors='coerce').astype('Int64')
     for c in ['F1','F2','F3','M1','M2','M3']:
         if c in df.columns:

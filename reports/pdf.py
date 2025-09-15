@@ -1,3 +1,4 @@
+
 import io
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -9,15 +10,15 @@ def build_pdf(data, press, anchors_res, plate_res):
 
     y = h-40
     c.setFont("Helvetica-Bold", 13)
-    c.drawString(40,y, "Reporte — Placa Base (MVP)")
+    c.drawString(40,y, "Report — Base Plate (MVP)")
     y -= 20
     c.setFont("Helvetica", 9)
-    c.drawString(40,y, "Entradas principales:")
+    c.drawString(40,y, "Key inputs:")
     y -= 14
 
     for k,v in {
         "f'c (MPa)": data.materials.concrete.fc_MPa,
-        "fy placa (MPa)": data.materials.plate.fy_MPa,
+        "fy plate (MPa)": data.materials.plate.fy_MPa,
         "a x b (mm)": f"{data.geometry.a_mm} x {data.geometry.b_mm}",
         "tp (mm)": data.geometry.tp_mm,
         "N (kN)": data.loads.N_kN,
@@ -27,26 +28,25 @@ def build_pdf(data, press, anchors_res, plate_res):
         y -= 12
 
     y -= 6
-    c.setFont("Helvetica-Bold", 10); c.drawString(40,y, "Presiones")
+    c.setFont("Helvetica-Bold", 10); c.drawString(40,y, "Pressures")
     y -= 14; c.setFont("Helvetica", 9)
     for k,v in press.items():
         c.drawString(50,y, f"{k}: {v}")
         y -= 12
 
     y -= 6
-    c.setFont("Helvetica-Bold", 10); c.drawString(40,y, "Anclajes (resumen)")
+    c.setFont("Helvetica-Bold", 10); c.drawString(40,y, "Anchors (summary)")
     y -= 14; c.setFont("Helvetica", 9)
     for k,v in anchors_res.items():
         c.drawString(50,y, f"{k}: {v}")
         y -= 12
 
     y -= 6
-    c.setFont("Helvetica-Bold", 10); c.drawString(40,y, "Placa (resumen)")
+    c.setFont("Helvetica-Bold", 10); c.drawString(40,y, "Plate (summary)")
     y -= 14; c.setFont("Helvetica", 9)
     for k,v in plate_res.items():
         c.drawString(50,y, f"{k}: {v}")
         y -= 12
 
     c.showPage(); c.save()
-    pdf = buffer.getvalue(); buffer.close()
-    return pdf
+    return buffer.getvalue()

@@ -1,7 +1,7 @@
+
 from pydantic import BaseModel
 from typing import Optional, List
 
-# --- Materiales ---
 class Concrete(BaseModel):
     fc_MPa: float
 
@@ -14,9 +14,9 @@ class AnchorSteel(BaseModel):
     fy_MPa: float
 
 class PhiFactors(BaseModel):
-    anchors_tension: float = 0.75   # ACI 318 LRFD
-    anchors_shear: float   = 0.65   # ACI 318 LRFD
-    bearing_concrete: float = 0.65  # ACI 318 LRFD
+    anchors_tension: float = 0.75
+    anchors_shear: float = 0.65
+    bearing_concrete: float = 0.65
 
 class Materials(BaseModel):
     concrete: Concrete
@@ -24,7 +24,6 @@ class Materials(BaseModel):
     anchors: AnchorSteel
     phi: PhiFactors = PhiFactors()
 
-# --- Geometría ---
 class Geometry(BaseModel):
     a_mm: float
     b_mm: float
@@ -43,9 +42,8 @@ class AnchorLine(BaseModel):
 
 class Anchors(BaseModel):
     lines: List[AnchorLine]
-    resist_shear: bool = False  # si Vx/Vy se transfieren por pernos
+    resist_shear: bool = False
 
-# --- Cargas y método ---
 class Loads(BaseModel):
     N_kN: float
     Mx_kNm: float
@@ -54,8 +52,8 @@ class Loads(BaseModel):
     Vy_kN: float = 0.0
 
 class Method(BaseModel):
-    pressure_case: str  # 'CASE_1','CASE_2','CASE_3','CASE_4'
-    plate_method: str   # 'ROARK','ELASTIC','PLASTIC'
+    pressure_case: str
+    plate_method: str
 
 class Options(BaseModel):
     lrfd: bool = True

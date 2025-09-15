@@ -1,31 +1,29 @@
+
 # Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.pdb
 .ipynb_checkpoints/
 
-# Entornos
+# Environments
 .venv/
 venv/
 
 # Streamlit
 .streamlit/secrets.toml
-# (config.toml SÍ se puede versionar; secrets NO)
 
-# Archivos binarios grandes / confidenciales
+# Large/confidential binaries (adjust as needed)
 *.xlsm
 *.xlsx
 *.pdf
 *.docx
 *.pptx
-# (sube solo si son públicos/no confidenciales; si necesitas ejemplos, mejor CSV anonimizados)
 
-# SO
+# OS
 .DS_Store
 Thumbs.db
 ~$*
 
-# VSCode
+# VS Code
 .vscode/

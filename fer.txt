@@ -10,3 +10,15 @@ git commit -m "feat: EN UI + SAP importer + worst-case + friction"
 git branch -M main
 git remote add origin https://github.com/fjcalderonb/PB1.git
 git push -u origin main
+
+
+:: 1) Desde la carpeta del repo
+git status
+git add -A
+git commit -m "feat(iter2b): EN UI + pedestal & A2/A1 + anchorage inputs + worst-case flow"
+
+:: 2) Crear nueva rama con tus cambios locales
+git checkout -b feat/iter2b
+
+:: 3) Subir esa rama al remoto
+git push -u origin feat/iter2b

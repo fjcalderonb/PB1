@@ -2,12 +2,12 @@
 import streamlit as st
 import pandas as pd
 from core.models import (InputData, Materials, Concrete, PlateSteel, AnchorSteel, PhiFactors,
-                         Geometry, Anchors, AnchorLine, Loads, Method, Options)
+                         Geometry, Loads, Method, Options, ColumnFootprint, Pedestal, AnchorageConfig)
 from core.pressure import pressure_distribution
-from core.anchors import design_anchors
-from core.plate import plate_checks
-from core.sap_import import read_sap_joint_reactions
+from core.anchors_steel import design_anchors_steel
+from core.anchors_concrete import design_anchors_concrete_stub
 from core.evaluator import worst_by_discipline
+from core.sap_import import read_sap_joint_reactions
 from reports.pdf import build_pdf
 from reports.pdf_sections import pdf_from_dict
 
@@ -24,21 +24,41 @@ with st.sidebar:
     else: fu_anchor, fy_anchor = 860.0, 720.0
 
     st.header("Plate")
-    a = st.number_input("a (mm)", 200.0, 3000.0, 1054.0, 1.0)
-    b = st.number_input("b (mm)", 200.0, 3000.0, 800.0, 1.0)
-    tp = st.number_input("tp (mm)", 8.0, 150.0, 76.0, 1.0)
+    a = st.number_input("plate a (mm)", 200.0, 3000.0, 1054.0, 1.0)
+    b = st.number_input("plate b (mm)", 200.0, 3000.0, 800.0, 1.0)
+    tp = st.number_input("plate thickness tp (mm)", 8.0, 150.0, 76.0, 1.0)
 
-    st.header("Anchors (line 1)")
-    diam_in = st.selectbox("Diameter (in)", ["1/2","5/8","3/4","7/8","1","1-1/8","1-1/4"])
-    DIAM_TO_MM = {"1/2":12.7,"5/8":15.875,"3/4":19.05,"7/8":22.225,"1":25.4,"1-1/8":28.575,"1-1/4":31.75}
-    d_mm = DIAM_TO_MM[diam_in]
-    n_bolts = st.number_input("# of bolts (line 1)", 2, 16, 4, 1)
-    g1 = st.number_input("g1 (mm, edge→bolt)", 20.0, 400.0, 114.0, 1.0)
-    v1 = st.number_input("v1 (mm, side margin)", 20.0, 600.0, 241.5, 0.5)
+    st.subheader("Column footprint (mm)")
+    b_col = st.number_input("b_col (mm)", 100.0, 2000.0, 300.0, 1.0)
+    h_col = st.number_input("h_col (mm)", 100.0, 2000.0, 300.0, 1.0)
+
+    st.subheader("Pedestal / Plinth")
+    use_ped = st.checkbox("Use pedestal (plinth)?", value=False)
+    Bp = st.number_input("Pedestal width Bp (mm)", 0.0, 10000.0, 0.0, 1.0)
+    Lp = st.number_input("Pedestal length Lp (mm)", 0.0, 10000.0, 0.0, 1.0)
+    a2a1_manual = st.number_input("A2/A1 override (optional)", 0.0, 20.0, 0.0, 0.1)
+    a2a1_override = a2a1_manual if a2a1_manual>0 else None
+
+    st.header("Anchorage & Concrete")
+    n_rows = st.number_input("# rows", 1, 10, 2)
+    n_cols = st.number_input("# cols", 1, 10, 2)
+    s_x = st.number_input("s_x (mm)", 50.0, 2000.0, 200.0, 1.0)
+    s_y = st.number_input("s_y (mm)", 50.0, 2000.0, 200.0, 1.0)
+    hef = st.number_input("hef (mm)", 50.0, 2000.0, 300.0, 1.0)
+    conc_thk = st.number_input("concrete thickness (mm)", 50.0, 5000.0, 500.0, 1.0)
+    cracked = st.checkbox("Cracked concrete?", value=True)
+    a_type = st.selectbox("Anchor type", ["headed","hooked"])
+    st.caption("Edge distances to plate edges (mm)")
+    c_xl = st.number_input("c_x_left (mm)", 0.0, 1000.0, 100.0, 1.0)
+    c_xr = st.number_input("c_x_right (mm)", 0.0, 1000.0, 100.0, 1.0)
+    c_yt = st.number_input("c_y_top (mm)", 0.0, 1000.0, 100.0, 1.0)
+    c_yb = st.number_input("c_y_bottom (mm)", 0.0, 1000.0, 100.0, 1.0)
+
+    st.header("Shear path")
     resist_shear = st.checkbox("Anchors resist shear", value=False)
     mu_fric = st.number_input("Friction μ (plate–grout/concrete)", 0.0, 1.0, 0.30, 0.01)
 
-    st.header("Quick loads (for manual check)")
+    st.header("Manual quick loads")
     N = st.number_input("N (kN) (compression + / tension -)", -5000.0, 5000.0, 200.0, 1.0)
     Mx = st.number_input("Mx (kN·m)", -5000.0, 5000.0, 50.0, 0.1)
     Vx = st.number_input("Vx (kN)", -2000.0, 2000.0, 20.0, 0.1)
@@ -53,70 +73,68 @@ materials = Materials(
     anchors=AnchorSteel(grade=grade, fu_MPa=fu_anchor, fy_MPa=fy_anchor),
     phi=PhiFactors()
 )
-geom = Geometry(a_mm=a, b_mm=b, tp_mm=tp, g1_mm=g1, v1_mm=v1)
-anchors = Anchors(lines=[AnchorLine(index=1, n_bolts=int(n_bolts), edge_dist_mm=g1, bolt_d_mm=d_mm)],
-                  resist_shear=resist_shear)
+geom = Geometry(a_mm=a, b_mm=b, tp_mm=tp)
+column = ColumnFootprint(b_col_mm=b_col, h_col_mm=h_col)
+pedestal = Pedestal(use=use_ped, Bp_mm=Bp, Lp_mm=Lp, a2a1_override=a2a1_override)
+anchorage = AnchorageConfig(n_rows=int(n_rows), n_cols=int(n_cols), s_x_mm=s_x, s_y_mm=s_y,
+                            hef_mm=hef, conc_thk_mm=conc_thk, cracked=cracked, anchor_type=a_type,
+                            c_x_left_mm=c_xl, c_x_right_mm=c_xr, c_y_top_mm=c_yt, c_y_bottom_mm=c_yb)
 loads = Loads(N_kN=N, Mx_kNm=Mx, Vx_kN=Vx)
 method = Method(pressure_case=case, plate_method=plate_method)
-data = InputData(materials=materials, geometry=geom, anchors=anchors, loads=loads, method=method)
+data = InputData(materials=materials, geometry=geom, loads=loads, method=method,
+                 column=column, pedestal=pedestal, anchorage=anchorage)
 
 
-# Tabs
+# ---------- Tabs ----------
 tab_main, tab_sap, tab_pdf = st.tabs(["Design/Checks", "Combinations (SAP2000)", "Reports"])
 
 with tab_main:
     st.subheader("Results (from manual sidebar loads)")
     press = pressure_distribution(data)
 
-    # Friction vs. bolts for Vx
+    # Shear split
     V_req = abs(loads.Vx_kN)
     Nc = max(0.0, loads.N_kN)
     Cf = mu_fric * Nc if not resist_shear else 0.0
     V_to_bolts = max(0.0, V_req - Cf) if not resist_shear else V_req
 
-    n_b = max(1, anchors.lines[0].n_bolts)
-    tpb = max(0.0, loads.N_kN*1e3)/n_b
-    spb = (V_to_bolts*1e3)/n_b
+    n_bolts = anchorage.n_rows * anchorage.n_cols
+    tpb = max(0.0, loads.N_kN*1e3)/max(1,n_bolts)
+    spb = (V_to_bolts*1e3)/max(1,n_bolts)
 
-    anch = design_anchors(data, tpb, spb)
-    plate = plate_checks(data, q_max_Pa=press.get("sigma_max_MPa",0.0)*1e6)
+    steel = design_anchors_steel(data, tpb, spb)
+    conc  = design_anchors_concrete_stub(data, tpb, spb)
 
     c1, c2 = st.columns(2)
     with c1:
         st.write("### Concrete — Bearing/pressure")
         st.json(press)
-        st.write("### Plate")
-        st.json(plate)
+        st.write("### Anchors (Concrete — stub)")
+        st.json(conc)
     with c2:
         st.write("### Shear path")
         st.write({"mu": mu_fric, "Nc_kN": Nc, "Cf_kN": Cf, "V_to_bolts_kN": V_to_bolts})
         st.write("### Anchors (Steel)")
-        st.json(anch)
+        st.json(steel)
 
 with tab_sap:
     st.write("### Import SAP2000 — Joint Reactions (XLSX/CSV)")
     sapfile = st.file_uploader("File exported from SAP2000 (TABLE: Joint Reactions)", type=["xlsx","csv"])
 
     if sapfile:
+        from core.sap_import import read_sap_joint_reactions
         df = read_sap_joint_reactions(sapfile)
         st.caption(f"Rows read: {len(df)} — Joints sample: {sorted(df['Joint'].dropna().astype(int).unique().tolist())[:10]} ...")
 
-        # ===== Axis mapper (presets + advanced) =====
+        # Axis mapper
         st.write("#### Axis and sign mapper")
         preset = st.radio("Preset", ["Preset A (default)", "Preset B (swap 1↔2)", "Advanced"], horizontal=True)
-
-        def mapping_from_preset(preset_label: str):
-            if preset_label.startswith("Preset A"):
-                return {"N":"F3", "Vx":"F1", "Vy":"F2", "Mx":"M2", "My":"M1"}
-            if preset_label.startswith("Preset B"):
-                # swap 1<->2
-                return {"N":"F3", "Vx":"F2", "Vy":"F1", "Mx":"M1", "My":"M2"}
-            # Advanced default start from A
+        def mapping_from_preset(p):
+            if p.startswith("Preset A"): return {"N":"F3", "Vx":"F1", "Vy":"F2", "Mx":"M2", "My":"M1"}
+            if p.startswith("Preset B"): return {"N":"F3", "Vx":"F2", "Vy":"F1", "Mx":"M1", "My":"M2"}
             return {"N":"F3", "Vx":"F1", "Vy":"F2", "Mx":"M2", "My":"M1"}
-
         mapping = mapping_from_preset(preset)
         flips = {k: False for k in ["N","Vx","Vy","Mx","My"]}
-
         if preset == "Advanced":
             st.info("Advanced: choose any source column and optionally flip its sign.")
             cols = [c for c in ["F1","F2","F3","M1","M2","M3"] if c in df.columns]
@@ -135,27 +153,23 @@ with tab_sap:
         else:
             st.caption(f"Using preset: {mapping}")
 
-        # Build standardized DF for ALL joints/rows (ignore CaseType/StepType)
-        def apply_mapping(dfin: pd.DataFrame, mapping: dict, flips: dict) -> pd.DataFrame:
+        def apply_mapping(dfin, mapping, flips):
             out = pd.DataFrame({
-                'Joint': dfin['Joint'],
-                'OutputCase': dfin['OutputCase'],
+                'Joint': dfin['Joint'], 'OutputCase': dfin['OutputCase'],
                 'N_kN':  dfin[mapping['N']]  * (-1 if flips.get('N') else 1),
                 'Vx_kN': dfin[mapping['Vx']] * (-1 if flips.get('Vx') else 1),
                 'Vy_kN': dfin[mapping['Vy']] * (-1 if flips.get('Vy') else 1),
                 'Mx_kNm': dfin[mapping['Mx']] * (-1 if flips.get('Mx') else 1),
                 'My_kNm': dfin[mapping['My']] * (-1 if flips.get('My') else 1),
             })
-            # drop rows with all NaNs in mapped forces
             mask = out[['N_kN','Vx_kN','Vy_kN','Mx_kNm','My_kNm']].notna().any(axis=1)
             return out.loc[mask].reset_index(drop=True)
 
         df_std = apply_mapping(df, mapping, flips)
         st.dataframe(df_std.head(25), use_container_width=True)
 
-        # Evaluate ALL rows and pick worst per discipline
         with st.spinner("Evaluating worst cases per discipline..."):
-            worst = worst_by_discipline(df_std, data, mu_fric, resist_shear)
+            worst = worst_by_discipline(df_std, data, mu_fric, resist_shear, anchorage.n_rows*anchorage.n_cols, 25.4)
 
         def show_worst(label: str, key: str, wr: dict):
             st.write(f"### {label} — Worst case")
@@ -182,16 +196,15 @@ with tab_pdf:
         pdf = pdf_from_dict("Concrete", {"Pressures": pressure_distribution(data)})
         st.download_button("Download RESULTS_CONCRETE.pdf", pdf, "RESULTS_CONCRETE.pdf")
     if st.button("PDF — Anchors (steel, current)"):
-        # Recompute shear split
         V_req = abs(loads.Vx_kN); Nc = max(0.0, loads.N_kN)
-        Cf = mu_fric * Nc if not anchors.resist_shear else 0.0
-        V_to_bolts = max(0.0, V_req - Cf) if not anchors.resist_shear else V_req
-        n_b = max(1, anchors.lines[0].n_bolts)
+        Cf = mu_fric * Nc if not anchorage else (mu_fric * Nc if not resist_shear else 0.0)
+        V_to_bolts = max(0.0, V_req - Cf) if not resist_shear else V_req
+        n_b = max(1, anchorage.n_rows*anchorage.n_cols)
         tpb = max(0.0, loads.N_kN*1e3)/n_b
         spb = (V_to_bolts*1e3)/n_b
-        data_dict = {"fric_mu": mu_fric, "Nc_kN": Nc, "Cf_kN": Cf, "V_to_bolts_kN": V_to_bolts, **design_anchors(data, tpb, spb)}
+        data_dict = {"fric_mu": mu_fric, "Nc_kN": Nc, "Cf_kN": Cf, "V_to_bolts_kN": V_to_bolts, **design_anchors_steel(data, tpb, spb)}
         pdf = pdf_from_dict("Anchors", data_dict)
         st.download_button("Download RESULTS_BOLTS.pdf", pdf, "RESULTS_BOLTS.pdf")
     if st.button("PDF — Plate (current)"):
-        pdf = pdf_from_dict("Plate", plate_checks(data, 0.0))
+        pdf = pdf_from_dict("Plate", {"note":"Roark local to be added next"})
         st.download_button("Download RESULTS_BASEPLATE.pdf", pdf, "RESULTS_BASEPLATE.pdf")

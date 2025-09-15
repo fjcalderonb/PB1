@@ -1,2 +1,12 @@
 streamlit run app.py --server.address=127.0.0.1 --server.port=8590
 python -m streamlit run app.py --server.address=127.0.0.1 --server.port=8590
+
+
+GIT
+git add .
+git status   :: (opcional) para ver qué se va a commitear
+git commit -m "feat: EN UI + SAP importer + worst-case + friction"
+
+git branch -M main
+git remote add origin https://github.com/fjcalderonb/PB1.git
+git push -u origin main

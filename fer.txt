@@ -1,5 +1,6 @@
 streamlit run app.py --server.address=127.0.0.1 --server.port=8590
 python -m streamlit run app.py --server.address=127.0.0.1 --server.port=8590
+python -m streamlit run app/app.py --server.address=127.0.0.1 --server.port=8590
 
 
 GIT
@@ -15,10 +16,21 @@ git push -u origin main
 :: 1) Desde la carpeta del repo
 git status
 git add -A
-git commit -m "feat(iter2b): EN UI + pedestal & A2/A1 + anchorage inputs + worst-case flow"
+git commit -m "feat(iter2c): EN UI + pedestal & A2/A1 + anchorage inputs + worst-case flow"
 
 :: 2) Crear nueva rama con tus cambios locales
 git checkout -b feat/iter2b
 
 :: 3) Subir esa rama al remoto
-git push -u origin feat/iter2b
+git push -u origin feat/iter2c
+
+
+
+# 1) Descomprimir el zip en una carpeta limpia (manteniendo la estructura)
+# 2) Crear entorno e instalar dependencias
+python -m venv .venv
+. .venv/Scripts/activate
+pip install -r requirements.txt
+
+# 3) Ejecutar la app multipágina
+streamlit run app/app.py

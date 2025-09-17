@@ -23,3 +23,14 @@ git checkout -b feat/iter2b
 
 :: 3) Subir esa rama al remoto
 git push -u origin feat/iter2c
+
+
+
+# 1) Descomprimir el zip en una carpeta limpia (manteniendo la estructura)
+# 2) Crear entorno e instalar dependencias
+python -m venv .venv
+. .venv/Scripts/activate
+pip install -r requirements.txt
+
+# 3) Ejecutar la app multipágina
+streamlit run app/app.py

@@ -1,6 +1,7 @@
 streamlit run app.py --server.address=127.0.0.1 --server.port=8590
 python -m streamlit run app.py --server.address=127.0.0.1 --server.port=8590
 python -m streamlit run app/app.py --server.address=127.0.0.1 --server.port=8590
+python -m streamlit run app/main.py --server.address=127.0.0.1 --server.port=8590
 
 
 GIT
@@ -34,3 +35,29 @@ pip install -r requirements.txt
 
 # 3) Ejecutar la app multipágina
 streamlit run app/app.py
+
+baseplate-app/
+├─ app/
+│  ├─ app.py
+│  └─ pages/
+│     ├─ 01_Project_Units.py
+│     ├─ 02_Geometry_Materials.py
+│     ├─ 03_Loads_SAP2000.py
+│     ├─ 04_Method_Assumptions.py
+│     ├─ 05_Results_Summary.py
+│     ├─ 06_Anchors_Layout.py
+│     └─ 07_Report_PDF.py
+├─ engine/
+│  ├─ steel/   (AISC 360-22; soldaduras)
+│  ├─ concrete/ (ACI 318-25 ch.17; shear lug)
+│  ├─ baseplate/ (local & sección completa; bearing)
+│  ├─ anchors/  (distribución N/V, CASE/elástico)
+│  └─ io/ (sap2000, csv, save/load)
+├─ data/
+│  ├─ shapes/aisc_w_shapes_min.csv
+│  └─ samples/ (CSV pernos, SAP demo)
+├─ assets/ (iconos, esquemas)
+├─ requirements.txt
+└─ README.md (guía Streamlit Cloud)
+
+
